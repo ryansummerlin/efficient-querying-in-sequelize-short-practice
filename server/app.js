@@ -21,7 +21,7 @@ app.use(express.json());
 app.get('/test-benchmark-logging', async (req, res) => {   // > 100 ms execution time
     const books = await Book.findAll({
         include: [
-            { model: Author }, 
+            { model: Author },
             { model: Review },
             { model: Reviewer }
         ],
@@ -34,46 +34,65 @@ app.get('/test-benchmark-logging', async (req, res) => {   // > 100 ms execution
 
 
 // STEP #1: Benchmark a Frequently-Used Query
-app.get('/books', async (req, res) => {
+// app.get('/books', async (req, res) => {
 
-    let books = await Book.findAll({
-        include: Author,
-    });
+//     let books = await Book.findAll({
+//         include: Author,
+//     });
 
-    // Filter by price if there is a maxPrice defined in the query params
-    if (req.query.maxPrice) {
-        books = books.filter(book => book.price < parseInt(req.query.maxPrice));
-    };
-    res.json(books);
-});
+//     // Filter by price if there is a maxPrice defined in the query params
+//     if (req.query.maxPrice) {
+//         books = books.filter(book => book.price < parseInt(req.query.maxPrice));
+//     };
+//     res.json(books);
+// });
 
     // 1a. Analyze:
 
         // Record Executed Query and Baseline Benchmark Below:
 
         // - What is happening in the code of the query itself?
+        // Average runtime: 78.6ms
 
+        // - What exactly is happening as SQL executes this query?
 
-        // - What exactly is happening as SQL executes this query? 
- 
 
 
 
 // 1b. Identify Opportunities to Make Query More Efficient
 
     // - What could make this query more efficient?
+    // Get rid of the books.filter and include the filter in the query
 
 
 // 1c. Refactor the Query in GET /books
 
+app.get('/books', async (req, res) => {
 
+    let query = {
+        where: {},
+        include: Author
+    }
+
+    if (req.query.maxPrice) {
+        query.where = { price: {
+            [Op.lte]: req.query.maxPrice
+        }}
+    }
+
+    let books = await Book.findAll(query);
+
+    res.json(books);
+});
 
 // 1d. Benchmark the Query after Refactoring
 
     // Record Executed Query and Baseline Benchmark Below:
+    // Average time: 35.2ms
 
     // Is the refactored query more efficient than the original? Why or Why Not?
-
+    // Yes it's almost twice as fast because I eliminated the filter javascript function and performed the operation
+    // in SQL instead via sequelize
 
 
 
@@ -129,7 +148,7 @@ app.get('/reviews', async (req, res) => {
 
     const reviews = await Review.findAll({
         include: {
-            model: Reviewer, 
+            model: Reviewer,
             where: whereClause,
             attributes: ['firstName', 'lastName']
         },
@@ -168,5 +187,5 @@ app.get('/authors/:authorId/books', async (req, res) => {
 });
 
 // Set port and listen for incoming requests - DO NOT MODIFY
-const port = 5000;
+const port = 5001;
 app.listen(port, () => console.log('Server is listening on port', port));
